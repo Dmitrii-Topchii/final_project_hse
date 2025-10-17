@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Text to Image</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  </head>
+  <body>
+    <div class="container">
+      <h1>Text → Image</h1>
+      <form id="gen-form">
+        <label for="prompt">Enter prompt</label>
+        <input id="prompt" name="prompt" type="text" placeholder="a cat reading a book in space" required />
+        <button id="submit" type="submit">Generate</button>
+        <span id="status" class="status" aria-live="polite"></span>
+      </form>
+      <div class="result">
+        <img id="output" alt="Generated image will appear here" />
+      </div>
+    </div>
+
+    <script>
+      const form = document.getElementById('gen-form');
+      const promptInput = document.getElementById('prompt');
+      const submitBtn = document.getElementById('submit');
+      const statusEl = document.getElementById('status');
+      const output = document.getElementById('output');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const prompt = promptInput.value.trim();
+        if (!prompt) return;
+        submitBtn.disabled = true;
+        statusEl.textContent = 'Generating...';
+        output.removeAttribute('src');
+        try {
+          const res = await fetch('/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt })
+          });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error || `Request failed: ${res.status}`);
+          }
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          output.src = url;
+          statusEl.textContent = '';
+        } catch (err) {
+          statusEl.textContent = err.message || 'Error generating image';
+        } finally {
+          submitBtn.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
+
